@@ -15,6 +15,7 @@ pub use drift_program::{
         user::{MarketType, Order, OrderStatus, PerpPosition, SpotPosition, User},
     },
 };
+pub use drift_program as program;
 use fnv::FnvHashMap;
 use futures_util::{future::BoxFuture, FutureExt, StreamExt};
 use log::{debug, warn};
@@ -841,7 +842,7 @@ impl<'a> TransactionBuilder<'a> {
     }
 
     /// Cancel orders given ids
-    pub fn cancel_orders_by_id(mut self, order_ids: Vec<u32>) -> Self {
+    pub fn cancel_orders_by_id(mut self, market_id: MarketId, order_ids: Vec<u32>) -> Self {
         let accounts = build_accounts(
             self.program_data,
             drift_program::accounts::CancelOrder {
@@ -850,7 +851,7 @@ impl<'a> TransactionBuilder<'a> {
                 user: self.sub_account,
             },
             self.account_data.as_ref(),
-            &[],
+            &[market_id],
             &[],
         );
 
