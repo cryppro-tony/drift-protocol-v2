@@ -80,7 +80,7 @@ pub struct NewOrder {
     direction: PositionDirection,
     reduce_only: bool,
     market_id: MarketId,
-    post_only: bool,
+    post_only: PostOnlyParam,
     ioc: bool,
     amount: u64,
     price: u64,
@@ -92,6 +92,7 @@ impl NewOrder {
         Self {
             order_type: OrderType::Market,
             market_id,
+            post_only: PostOnlyParam::None,
             ..Default::default()
         }
     }
@@ -100,6 +101,7 @@ impl NewOrder {
         Self {
             order_type: OrderType::Limit,
             market_id,
+            post_only: PostOnlyParam::None,
             ..Default::default()
         }
     }
@@ -132,8 +134,8 @@ impl NewOrder {
         self
     }
     /// Set post-only (default: false)
-    pub fn post_only(mut self, flag: bool) -> Self {
-        self.post_only = flag; // TODO: map the other variants
+    pub fn post_only(mut self, param: PostOnlyParam) -> Self {
+        self.post_only = param;
         self
     }
     /// Call to complete building the Order
@@ -147,11 +149,7 @@ impl NewOrder {
             reduce_only: self.reduce_only,
             direction: self.direction,
             immediate_or_cancel: self.ioc,
-            post_only: if self.post_only {
-                PostOnlyParam::TryPostOnly
-            } else {
-                PostOnlyParam::None
-            },
+            post_only: self.post_only,
             ..Default::default()
         }
     }
