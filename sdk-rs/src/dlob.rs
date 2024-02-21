@@ -2,7 +2,7 @@
 use std::{task::Poll, time::Duration};
 
 // External Crate Imports
-use drift_program::state::user::MarketType;
+use drift::state::user::MarketType;
 use futures_util::{SinkExt, Stream, StreamExt};
 use log::{error, info};
 use reqwest::Client;
@@ -232,23 +232,23 @@ pub struct L3Orderbook {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct L2Level {
     #[serde(deserialize_with = "parse_int_str")]
-    pub price: u64,
+    pub price: i64,
     #[serde(deserialize_with = "parse_int_str")]
-    pub size: u64,
+    pub size: i64,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct L3Level {
     #[serde(deserialize_with = "parse_int_str")]
-    pub price: u64,
+    pub price: i64,
     #[serde(deserialize_with = "parse_int_str")]
-    pub size: u64,
+    pub size: i64,
     pub maker: String,
     #[serde(rename = "orderId")]
     pub order_id: u64,
 }
 
-fn parse_int_str<'de, D>(deserializer: D) -> Result<u64, D::Error>
+fn parse_int_str<'de, D>(deserializer: D) -> Result<i64, D::Error>
 where
     D: de::Deserializer<'de>,
 {
@@ -261,7 +261,7 @@ mod tests {
     use futures_util::StreamExt;
 
     use super::*;
-    use crate::{constants::MarketExt, types::Context, DriftClient, RpcAccountProvider};
+    use crate::{MarketExt, types::Context, DriftClient, RpcAccountProvider};
 
     // this is my (frank) free helius endpoint
     const MAINNET_ENDPOINT: &str =

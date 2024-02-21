@@ -1,8 +1,9 @@
 use std::cmp::Ordering;
 
-use drift_program::error::ErrorCode;
+use anchor_lang::AccountDeserialize;
+use drift::error::ErrorCode;
 // re-export types in public API
-pub use drift_program::{
+pub use drift::{
     controller::position::PositionDirection,
     state::{
         order_params::{ModifyOrderParams, OrderParams, PostOnlyParam},
@@ -13,6 +14,7 @@ pub use drift_program::{
 };
 use futures_util::sink::Sink;
 pub use solana_client::rpc_config::RpcSendTransactionConfig;
+pub use solana_sdk::{commitment_config::CommitmentConfig, message::VersionedMessage};
 use solana_sdk::{
     instruction::{AccountMeta, InstructionError},
     pubkey::Pubkey,
@@ -35,7 +37,9 @@ pub enum Context {
 }
 
 #[derive(Debug, Clone)]
-pub struct DataAndSlot<T> {
+pub struct DataAndSlot<T>
+    where T: AccountDeserialize
+{
     pub slot: u64,
     pub data: T,
 }
@@ -62,6 +66,12 @@ impl MarketId {
             kind: MarketType::Spot,
         }
     }
+
+    /// `MarketId` for the USDC Spot Market
+    pub const QUOTE_SPOT: Self = Self {
+        index: 0,
+        kind: MarketType::Spot
+      };
 }
 
 impl From<(u16, MarketType)> for MarketId {
@@ -133,9 +143,9 @@ impl NewOrder {
         self.ioc = flag;
         self
     }
-    /// Set post-only (default: false)
-    pub fn post_only(mut self, param: PostOnlyParam) -> Self {
-        self.post_only = param;
+    /// Set post-only (default: None)
+    pub fn post_only(mut self, value: PostOnlyParam) -> Self {
+        self.post_only = value;
         self
     }
     /// Call to complete building the Order
@@ -340,9 +350,64 @@ impl MarketPrecision for PerpMarket {
     }
 }
 
+#[derive(Clone)]
+pub struct ClientOpts {
+    active_sub_account_id: u16,
+    sub_account_ids: Vec<u16>,
+}
+
+impl Default for ClientOpts {
+    fn default() -> Self {
+        Self {
+            active_sub_account_id: 0,
+            sub_account_ids: vec![0]
+        }
+    }
+}
+
+impl ClientOpts {
+    pub fn new(active_sub_account_id: u16, sub_account_ids: Option<Vec<u16>>) -> Self {
+        let sub_account_ids = sub_account_ids.unwrap_or(vec![active_sub_account_id]);
+        Self {
+            active_sub_account_id,
+            sub_account_ids
+        }
+    }
+
+    pub fn active_sub_account_id(self) -> u16 {
+        self.active_sub_account_id
+    }
+
+    pub fn sub_account_ids(self) -> Vec<u16>  {
+        self.sub_account_ids
+    }
+}
+
+pub struct ReferrerInfo {
+    referrer: Pubkey,
+    referrer_stats: Pubkey
+}
+
+impl ReferrerInfo {
+    pub fn new(referrer: Pubkey, referrer_stats: Pubkey) -> Self {
+        Self {
+            referrer,
+            referrer_stats
+        }
+    }
+
+    pub fn referrer(&self) -> Pubkey {
+        self.referrer
+    }
+
+    pub fn referrer_stats(&self) -> Pubkey {
+        self.referrer_stats
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use drift_program::error::ErrorCode;
+    use drift::error::ErrorCode;
     use solana_client::{
         client_error::{ClientError, ClientErrorKind},
         rpc_request::{RpcError, RpcRequest},
