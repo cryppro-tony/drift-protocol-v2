@@ -11,7 +11,7 @@ anchor-lang = "0.27.0"
 bytemuck = "1.13.0"
 base64 = "0.13"
 #drift-program = { package = "drift", path = "../programs/drift" }
-drift-program = { git = "https://github.com/drift-labs/protocol-v2", tag = "v2.61.0", package = "drift" }
+drift = { git = "https://github.com/drift-labs/protocol-v2", tag = "v2.61.0", package = "drift", features = ["mainnet-beta"]}
 env_logger = "0.10.1"
 fnv = "1.0.7"
 futures-util = "0.3.29"

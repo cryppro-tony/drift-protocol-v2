@@ -15,7 +15,7 @@ pub use drift::{
         user::{MarketType, Order, OrderStatus, PerpPosition, SpotPosition, User},
     },
 };
-pub use drift_program as program;
+pub use drift as program;
 use fnv::FnvHashMap;
 use futures_util::{future::BoxFuture, FutureExt, StreamExt};
 use log::{debug, warn};
