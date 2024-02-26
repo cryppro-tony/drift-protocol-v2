@@ -72,6 +72,7 @@ pub mod dlob;
 pub mod slot_subscriber;
 pub mod event_subscriber;
 pub mod auction_subscriber;
+pub mod liquidation;
 
 use types::*;
 

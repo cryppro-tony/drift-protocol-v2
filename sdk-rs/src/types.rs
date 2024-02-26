@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use anchor_lang::AccountDeserialize;
-use drift::error::ErrorCode;
+use drift::{error::ErrorCode, state::user::UserStats};
 // re-export types in public API
 pub use drift::{
     controller::position::PositionDirection,
@@ -24,6 +24,8 @@ use thiserror::Error;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{tungstenite, MaybeTlsStream, WebSocketStream};
 
+use crate::Wallet;
+
 pub type SdkResult<T> = Result<T, SdkError>;
 
 /// Drift program context
@@ -38,7 +40,8 @@ pub enum Context {
 
 #[derive(Debug, Clone)]
 pub struct DataAndSlot<T>
-    where T: AccountDeserialize
+where
+    T: AccountDeserialize,
 {
     pub slot: u64,
     pub data: T,
@@ -47,8 +50,8 @@ pub struct DataAndSlot<T>
 /// Id of a Drift market
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct MarketId {
-    pub index: u16,
-    pub kind: MarketType,
+    pub(crate) index: u16,
+    pub(crate) kind: MarketType,
 }
 
 impl MarketId {
@@ -70,8 +73,8 @@ impl MarketId {
     /// `MarketId` for the USDC Spot Market
     pub const QUOTE_SPOT: Self = Self {
         index: 0,
-        kind: MarketType::Spot
-      };
+        kind: MarketType::Spot,
+    };
 }
 
 impl From<(u16, MarketType)> for MarketId {
@@ -102,7 +105,6 @@ impl NewOrder {
         Self {
             order_type: OrderType::Market,
             market_id,
-            post_only: PostOnlyParam::None,
             ..Default::default()
         }
     }
@@ -111,7 +113,6 @@ impl NewOrder {
         Self {
             order_type: OrderType::Limit,
             market_id,
-            post_only: PostOnlyParam::None,
             ..Default::default()
         }
     }
@@ -204,6 +205,8 @@ pub enum SdkError {
     InvalidSeed,
     #[error("invalid base58 value")]
     InvalidBase58,
+    #[error("user does not have position: {0}")]
+    NoPosiiton(u16),
     #[error("insufficient SOL balance for fees")]
     OutOfSOL,
     #[error("{0}")]
@@ -360,7 +363,7 @@ impl Default for ClientOpts {
     fn default() -> Self {
         Self {
             active_sub_account_id: 0,
-            sub_account_ids: vec![0]
+            sub_account_ids: vec![0],
         }
     }
 }
@@ -370,29 +373,30 @@ impl ClientOpts {
         let sub_account_ids = sub_account_ids.unwrap_or(vec![active_sub_account_id]);
         Self {
             active_sub_account_id,
-            sub_account_ids
+            sub_account_ids,
         }
     }
 
-    pub fn active_sub_account_id(self) -> u16 {
+    pub fn active_sub_account_id(&self) -> u16 {
         self.active_sub_account_id
     }
 
-    pub fn sub_account_ids(self) -> Vec<u16>  {
+    pub fn sub_account_ids(self) -> Vec<u16> {
         self.sub_account_ids
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct ReferrerInfo {
     referrer: Pubkey,
-    referrer_stats: Pubkey
+    referrer_stats: Pubkey,
 }
 
 impl ReferrerInfo {
     pub fn new(referrer: Pubkey, referrer_stats: Pubkey) -> Self {
         Self {
             referrer,
-            referrer_stats
+            referrer_stats,
         }
     }
 
@@ -402,6 +406,20 @@ impl ReferrerInfo {
 
     pub fn referrer_stats(&self) -> Pubkey {
         self.referrer_stats
+    }
+
+    pub fn get_referrer_info(taker_stats: UserStats) -> Option<Self> {
+        if taker_stats.referrer == Pubkey::default() {
+            return None;
+        }
+
+        let user_account_pubkey = Wallet::derive_user_account(&taker_stats.referrer, 0, &crate::constants::PROGRAM_ID);
+        let user_stats_pubkey = Wallet::derive_stats_account(&taker_stats.referrer, &crate::constants::PROGRAM_ID);
+
+        Some(Self {
+            referrer: user_account_pubkey,
+            referrer_stats: user_stats_pubkey,
+        })
     }
 }
 
