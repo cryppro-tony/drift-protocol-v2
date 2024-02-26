@@ -50,8 +50,8 @@ where
 /// Id of a Drift market
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct MarketId {
-    pub(crate) index: u16,
-    pub(crate) kind: MarketType,
+    pub index: u16,
+    pub kind: MarketType,
 }
 
 impl MarketId {
